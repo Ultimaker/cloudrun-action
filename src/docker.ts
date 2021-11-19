@@ -1,10 +1,16 @@
 import * as core from '@actions/core'
+import {RequestError} from 'got/dist/source'
+import {ContainerConfiguration} from './ContainerConfiguration'
+
 const stringify = require('json-stringify-safe')
 
-export async function getEnvVarsFromImage(name: string): Promise<string[]> {
+export async function getEnvVarsFromImage(
+  name: string
+): Promise<ContainerConfiguration> {
   const serviceAccountKey: string = core.getInput('service_account_key', {
     required: true
   })
+  const containerConfig = new ContainerConfiguration()
 
   const imageUrl = new URL(`https://${name}`)
 
@@ -38,14 +44,25 @@ export async function getEnvVarsFromImage(name: string): Promise<string[]> {
     ).json()
     core.debug(`inspect image response: ${stringify(response, null, 4)}`)
 
-    return response.Config.Env
+    for (const envVar of response.Config.Env) {
+      containerConfig.envVars.push({
+        name: envVar.split('=')[0],
+        value: envVar.split('=')[1]
+      })
+    }
+    if ('IMAGE_ARGUMENTS' in response.Config.Labels) {
+      containerConfig.arguments = response.Config.Labels[
+        'IMAGE_ARGUMENTS'
+      ].split(',')
+    }
+    return containerConfig
   } catch (error) {
     core.debug(stringify(error, null, 4))
-    if (error.request) core.debug(stringify(error.request, null, 4))
-    if (error.response) core.debug(stringify(error.response, null, 4))
-
-    core.setFailed(error.response.body)
+    if (error instanceof RequestError) {
+      if (error.request) core.debug(stringify(error.request, null, 4))
+      if (error.response) core.debug(stringify(error.response, null, 4))
+      core.setFailed(error)
+    }
   }
-
-  return []
+  return containerConfig
 }

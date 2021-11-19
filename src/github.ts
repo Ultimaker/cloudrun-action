@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {getCloudRunEnvironmentVariables} from './gcloud'
+import {ContainerConfiguration} from './ContainerConfiguration'
 
 const prDeployCommentMarker = '<!-- cloudrun-action-marker -->\n\n'
 export async function addPullRequestComment(comment: string): Promise<number> {
@@ -90,11 +91,13 @@ export async function updatePullRequestComment(
   return -1
 }
 
-export async function getConfiguredEnvVars(
-  supportedEnvVars: string[]
-): Promise<{name: string; value: string}[]> {
+export async function getContainerConfiguration(
+  supportedContainerConfiguration: ContainerConfiguration
+): Promise<ContainerConfiguration> {
+  const containerConfig = new ContainerConfiguration()
+
   // get environment variables from workflow file
-  const envVars = getCloudRunEnvironmentVariables()
+  containerConfig.envVars = getCloudRunEnvironmentVariables()
 
   // get labels from pull request
   const githubToken = core.getInput('github_token')
@@ -112,9 +115,8 @@ export async function getConfiguredEnvVars(
     })
 
     const supportedEnvVarNames = []
-    for (const key of supportedEnvVars) {
-      const envVarName = key.split('=', 2)[0]
-      supportedEnvVarNames.push(envVarName)
+    for (const envVar of supportedContainerConfiguration.envVars) {
+      supportedEnvVarNames.push(envVar.name)
     }
 
     for (const key of issueLabels) {
@@ -126,16 +128,19 @@ export async function getConfiguredEnvVars(
         )
         continue
       }
+      if (key.name === 'IMAGE_ARGUMENT') {
+        containerConfig.arguments.push(key.description)
+      }
       if (supportedEnvVarNames.includes(key.name)) {
         let found = false
-        for (const currentKey of envVars) {
+        for (const currentKey of containerConfig.envVars) {
           if (currentKey.name === key.name) {
             currentKey.value = key.description
             found = true
           }
         }
         if (!found)
-          envVars.push({
+          containerConfig.envVars.push({
             name: key.name,
             value: key.description
           })
@@ -145,5 +150,5 @@ export async function getConfiguredEnvVars(
     }
   }
 
-  return envVars
+  return containerConfig
 }
