@@ -37,27 +37,43 @@ async function create(): Promise<void> {
   comment += `- [ ] Pulling and inspecting image to determine configurable environment variables.\n`
   await github.updatePullRequestComment(comment_id, comment)
 
-  const envVars = await docker.getEnvVarsFromImage(image)
+  const dockerContainerConfig = await docker.getEnvVarsFromImage(image)
   comment = comment.replace('- [ ]', '- [x]')
 
-  if (envVars !== undefined) {
+  if (dockerContainerConfig.envVars.length > 0) {
     comment += `<details><summary>Configurable environment variables</summary>\n<ul>\n`
 
     comment += `\nKEY | VALUE\n--- | ---\n`
-    for (let i = 0; i < envVars?.length; i++) {
-      comment += `${envVars[i].replace('=', ' | ')}\n`
+    for (const envVar of dockerContainerConfig.envVars) {
+      comment += `${envVar.name} | ${envVar.value}\n`
     }
 
     comment += `\nConfigure environment variables by adding labels to the pull request, the name of the label is the environment variable name, the 'description' field should be set to the value.\n</details>\n\n`
   }
+
+  if (dockerContainerConfig.arguments.length) {
+    comment += `<details><summary>Container command arguments</summary>\n<ul>\n`
+    comment += `This image supports setting an image argument. To configure it, add a label to this PR called 'IMAGE_ARGUMENT'. The description should be a value from the following list:\n`
+    comment += `\n| IMAGE_ARGUMENT |\n|---|\n`
+    for (let i = 0; i < dockerContainerConfig.arguments.length; i++) {
+      for (const argument of dockerContainerConfig.arguments) {
+        comment += `| ${argument} |\n`
+      }
+    }
+    comment += `\n</details>\n\n`
+  }
+
   await github.updatePullRequestComment(comment_id, comment)
 
-  const configuredEnvVars = await github.getConfiguredEnvVars(envVars)
-  if (configuredEnvVars.length > 0) {
-    comment += `<details><summary>Configured environment variables</summary>\n<ul>\n`
+  const containerConfig = await github.getContainerConfiguration(
+    dockerContainerConfig
+  )
+
+  if (containerConfig.envVars.length > 0) {
+    comment += `<details><summary>Configured environment variables / settings</summary>\n<ul>\n`
 
     comment += `\nKEY | VALUE\n--- | ---\n`
-    for (const key of configuredEnvVars) {
+    for (const key of containerConfig.envVars) {
       comment += `${key.name} | ${key.value}\n`
     }
     comment += `\n</details>\n\n`
@@ -66,19 +82,17 @@ async function create(): Promise<void> {
   await github.updatePullRequestComment(comment_id, comment)
 
   try {
-    const {
-      url,
-      logsUrl,
-      deploymentDate
-    } = await gcloud.createOrUpdateCloudRunService(
+    const serviceConfig = new gcloud.ServiceConfiguration(
       name,
       runRegion,
+      serviceAccountKey,
       image,
       serviceAccountName,
-      serviceAccountKey,
       vpcConnectorName,
-      configuredEnvVars
+      containerConfig
     )
+    const {url, logsUrl, deploymentDate} = await serviceConfig.createOrUpdate()
+
     comment += `- Deployment date: ${deploymentDate}.\n`
     comment += `- URL: ${url}\n`
     comment += `- Logs: ${logsUrl}\n`
@@ -90,7 +104,7 @@ async function create(): Promise<void> {
 
     await github.updatePullRequestComment(comment_id, comment)
   } catch (error) {
-    comment += `- Deployment failed: ${error.message}.\n`
+    comment += `- Deployment failed: ${error}.\n`
     comment = comment.replace(
       '### :construction: Cloud Run Deployment in progress :construction:',
       '### :heavy_exclamation_mark: Cloud Run Deployment failed :heavy_exclamation_mark:'
@@ -113,16 +127,22 @@ async function destroy(): Promise<void> {
     let comment = `🤖  Cloud Run Deployment: Deleting\n`
     const comment_id = await github.addPullRequestComment(comment)
     try {
-      await gcloud.deleteCloudRunService(name, runRegion, serviceAccountKey)
+      const serviceConfig = new gcloud.ServiceConfiguration(
+        name,
+        runRegion,
+        serviceAccountKey
+      )
+
+      await serviceConfig.delete()
       comment += `🤖  Cloud Run Deployment: Deployment succesfully deleted.\n`
       github.updatePullRequestComment(comment_id, comment)
     } catch (error) {
-      comment += `🤖  Cloud Run Deployment: Deployment deletion failed: ${error.message}.\n`
+      comment += `🤖  Cloud Run Deployment: Deployment deletion failed: ${error}.\n`
       github.updatePullRequestComment(comment_id, comment)
       throw error
     }
   } catch (error) {
-    core.setFailed(error.message)
+    core.setFailed(JSON.stringify(error, null, 4))
   }
 }
 
@@ -134,7 +154,7 @@ async function main(): Promise<void> {
       await destroy()
     }
   } catch (error) {
-    core.setFailed(error.message)
+    core.setFailed(JSON.stringify(error, null, 4))
   }
 }
 
