@@ -7,14 +7,12 @@ const stringify = require('json-stringify-safe')
 export async function getEnvVarsFromImage(
   name: string
 ): Promise<ContainerConfiguration> {
-  const registry_access_token: string = core.getInput('registry_access_token', {
-    required: true
-  })
+  const registry_access_token: string = core.getInput('registry_access_token')
   const containerConfig = new ContainerConfiguration()
 
   const imageUrl = new URL(`https://${name}`)
   const auth = {
-    username: '_json_key',
+    username: 'oauth2accesstoken',
     password: registry_access_token,
     auth: '',
     email: '',
