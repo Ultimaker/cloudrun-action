@@ -8,6 +8,9 @@ inputs:
   image:
     required: true
     description: 'Image to run on Google Cloud Run.'
+  registry_access_token:
+    required: false
+    description: 'Access token required for accessing the docker registry.'
   service_account_key:
     required: true
     description: 'Google Application Credentials to be used. Can be either the contents of the JSON file or a filename which contains the contents.'

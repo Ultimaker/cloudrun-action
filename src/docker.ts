@@ -1,5 +1,4 @@
 import * as core from '@actions/core'
-import * as fs from 'fs'
 import {RequestError} from 'got/dist/source'
 import {ContainerConfiguration} from './ContainerConfiguration'
 
@@ -8,21 +7,15 @@ const stringify = require('json-stringify-safe')
 export async function getEnvVarsFromImage(
   name: string
 ): Promise<ContainerConfiguration> {
-  const serviceAccountKey: string = core.getInput('service_account_key', {
+  const registry_access_token: string = core.getInput('registry_access_token', {
     required: true
   })
   const containerConfig = new ContainerConfiguration()
 
   const imageUrl = new URL(`https://${name}`)
-  let serviceAccountKeyContents = serviceAccountKey
-  if (fs.existsSync(serviceAccountKey)) {
-    // This is a path to a file on the filesystem, read in the contents
-    serviceAccountKeyContents = fs.readFileSync(serviceAccountKey).toString()
-  }
-
   const auth = {
     username: '_json_key',
-    password: serviceAccountKeyContents,
+    password: registry_access_token,
     auth: '',
     email: '',
     serveraddress: imageUrl.host
