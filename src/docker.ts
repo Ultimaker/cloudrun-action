@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import * as fs from 'fs'
 import {RequestError} from 'got/dist/source'
 import {ContainerConfiguration} from './ContainerConfiguration'
 
@@ -13,10 +14,15 @@ export async function getEnvVarsFromImage(
   const containerConfig = new ContainerConfiguration()
 
   const imageUrl = new URL(`https://${name}`)
+  let serviceAccountKeyContents = serviceAccountKey
+  if (fs.existsSync(serviceAccountKey)) {
+    // This is a path to a file on the filesystem, read in the contents
+    serviceAccountKeyContents = fs.readFileSync(serviceAccountKey).toString()
+  }
 
   const auth = {
     username: '_json_key',
-    password: serviceAccountKey,
+    password: serviceAccountKeyContents,
     auth: '',
     email: '',
     serveraddress: imageUrl.host
