@@ -5,14 +5,10 @@ import * as docker from './docker'
 
 async function create(): Promise<void> {
   const name: string = core.getInput('name', {required: true})
-  const serviceAccountKey: string = core.getInput('service_account_key', {
-    required: true
-  })
   const runRegion: string = core.getInput('run_region', {required: true})
   const image: string = core.getInput('image', {required: true})
-  const serviceAccountName: string = core.getInput('service_account_name', {
-    required: true
-  })
+  const serviceAccountKey: string = core.getInput('service_account_key')
+  const serviceAccountName: string = core.getInput('service_account_name')
   const vpcConnectorName: string = core.getInput('vpc_connector_name')
 
   core.info(`Deploying docker image ${image}...`)
