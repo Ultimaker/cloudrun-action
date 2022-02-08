@@ -9,8 +9,8 @@ inputs:
     required: true
     description: 'Image to run on Google Cloud Run.'
   service_account_key:
-    required: false
-    description: 'Google Application Credentials to be used. Can be either the contents of the JSON file or a filename which contains the contents. If not specified, relies on environment.'
+    required: true
+    description: 'Google Application Credentials to be used. Can be either the contents of the JSON file or a filename which contains the contents.'
   service_account_name:
     required: false
     description: 'Email address of the IAM service account associated with the revision of the service. The service account represents the identity of the running revision, and determines what permissions the revision has. If not provided, the revision will use the project''s default service account.'

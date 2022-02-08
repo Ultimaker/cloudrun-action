@@ -7,7 +7,7 @@ import {GaxiosError} from 'googleapis-common'
 export class ServiceConfiguration {
   name: string
   runRegion: string
-  serviceAccountKey?: string
+  serviceAccountKey: string
 
   image?: string
   serviceAccountName?: string
@@ -19,7 +19,7 @@ export class ServiceConfiguration {
   constructor(
     name: string,
     runRegion: string,
-    serviceAccountKey?: string,
+    serviceAccountKey: string,
     image?: string,
     serviceAccountName?: string,
     vpcConnectorName?: string,
@@ -28,7 +28,7 @@ export class ServiceConfiguration {
     this.name = name
     this.runRegion = runRegion
 
-    if (serviceAccountKey) this.serviceAccountKey = serviceAccountKey
+    this.serviceAccountKey = serviceAccountKey
     if (image) this.image = image
     if (serviceAccountName) this.serviceAccountName = serviceAccountName
     if (vpcConnectorName) this.vpcConnectorName = vpcConnectorName
@@ -48,8 +48,7 @@ export class ServiceConfiguration {
       const {google} = require('googleapis')
       const run = google.run('v1')
 
-      if (this.serviceAccountKey)
-        await setGoogleApplicationCredentials(this.serviceAccountKey)
+      await setGoogleApplicationCredentials(this.serviceAccountKey)
 
       // Obtain user credentials to use for the request
       const auth = new google.auth.GoogleAuth({
@@ -189,8 +188,7 @@ export class ServiceConfiguration {
       const run = google.run('v1')
       const serviceName = this.serviceName()
 
-      if (this.serviceAccountKey)
-        await setGoogleApplicationCredentials(this.serviceAccountKey)
+      await setGoogleApplicationCredentials(this.serviceAccountKey)
       // Obtain user credentials to use for the request
       const auth = new google.auth.GoogleAuth({
         scopes: ['https://www.googleapis.com/auth/cloud-platform']

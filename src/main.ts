@@ -7,7 +7,9 @@ async function create(): Promise<void> {
   const name: string = core.getInput('name', {required: true})
   const runRegion: string = core.getInput('run_region', {required: true})
   const image: string = core.getInput('image', {required: true})
-  const serviceAccountKey: string = core.getInput('service_account_key')
+  const serviceAccountKey: string = core.getInput('service_account_key', {
+    required: true
+  })
   const serviceAccountName: string = core.getInput('service_account_name')
   const vpcConnectorName: string = core.getInput('vpc_connector_name')
 
