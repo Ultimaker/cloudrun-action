@@ -7,7 +7,7 @@ import {GaxiosError} from 'googleapis-common'
 export class ServiceConfiguration {
   name: string
   runRegion: string
-  serviceAccountKey: string
+  serviceAccountKey?: string
 
   image?: string
   serviceAccountName?: string
@@ -19,7 +19,7 @@ export class ServiceConfiguration {
   constructor(
     name: string,
     runRegion: string,
-    serviceAccountKey: string,
+    serviceAccountKey?: string,
     image?: string,
     serviceAccountName?: string,
     vpcConnectorName?: string,
@@ -27,8 +27,8 @@ export class ServiceConfiguration {
   ) {
     this.name = name
     this.runRegion = runRegion
-    this.serviceAccountKey = serviceAccountKey
 
+    if (serviceAccountKey) this.serviceAccountKey = serviceAccountKey
     if (image) this.image = image
     if (serviceAccountName) this.serviceAccountName = serviceAccountName
     if (vpcConnectorName) this.vpcConnectorName = vpcConnectorName
@@ -48,7 +48,8 @@ export class ServiceConfiguration {
       const {google} = require('googleapis')
       const run = google.run('v1')
 
-      await setGoogleApplicationCredentials(this.serviceAccountKey)
+      if (this.serviceAccountKey)
+        await setGoogleApplicationCredentials(this.serviceAccountKey)
 
       // Obtain user credentials to use for the request
       const auth = new google.auth.GoogleAuth({
@@ -187,7 +188,9 @@ export class ServiceConfiguration {
       const {google} = require('googleapis')
       const run = google.run('v1')
       const serviceName = this.serviceName()
-      await setGoogleApplicationCredentials(this.serviceAccountKey)
+
+      if (this.serviceAccountKey)
+        await setGoogleApplicationCredentials(this.serviceAccountKey)
       // Obtain user credentials to use for the request
       const auth = new google.auth.GoogleAuth({
         scopes: ['https://www.googleapis.com/auth/cloud-platform']
@@ -271,21 +274,26 @@ async function setGoogleApplicationCredentials(
   serviceAccountKey: string
 ): Promise<void> {
   if (!process.env['GOOGLE_APPLICATION_CREDENTIALS']) {
-    const uniqueFilename = require('unique-filename')
+    // Check if the provided value is an existing file
+    if (!fs.existsSync(serviceAccountKey)) {
+      const uniqueFilename = require('unique-filename')
 
-    const randomTmpFile = uniqueFilename(os.tmpdir())
+      const randomTmpFile = uniqueFilename(os.tmpdir())
 
-    fs.writeFile(
-      randomTmpFile,
-      serviceAccountKey,
-      function (err: Error | null) {
-        if (err) {
-          core.debug(String(err))
+      fs.writeFile(
+        randomTmpFile,
+        serviceAccountKey,
+        function (err: Error | null) {
+          if (err) {
+            core.debug(String(err))
+          }
         }
-      }
-    )
+      )
 
-    core.exportVariable('GOOGLE_APPLICATION_CREDENTIALS', randomTmpFile)
+      core.exportVariable('GOOGLE_APPLICATION_CREDENTIALS', randomTmpFile)
+    } else {
+      core.exportVariable('GOOGLE_APPLICATION_CREDENTIALS', serviceAccountKey)
+    }
   }
 }
 
@@ -306,10 +314,7 @@ export function getCloudRunEnvironmentVariables(): {
       }
     }
   }
-
-  const environment: {name: string; value: string}[] = entries
-
-  return environment
+  return entries
 }
 
 async function delay(ms: number): Promise<void> {

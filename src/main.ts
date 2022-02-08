@@ -55,10 +55,8 @@ async function create(): Promise<void> {
     comment += `<details><summary>Container command arguments</summary>\n<ul>\n`
     comment += `This image supports setting an image argument. To configure it, add a label to this PR called 'IMAGE_ARGUMENT'. The description should be a value from the following list:\n`
     comment += `\n| IMAGE_ARGUMENT |\n|---|\n`
-    for (let i = 0; i < dockerContainerConfig.arguments.length; i++) {
-      for (const argument of dockerContainerConfig.arguments) {
-        comment += `| ${argument} |\n`
-      }
+    for (const argument of dockerContainerConfig.arguments) {
+      comment += `| ${argument} |\n`
     }
     comment += `\n</details>\n\n`
   }
