@@ -1,7 +1,6 @@
 import * as core from '@actions/core'
 import * as gcloud from './gcloud'
 import * as github from './github'
-import * as docker from './docker'
 
 async function create(): Promise<void> {
   const name: string = core.getInput('name', {required: true})
@@ -32,38 +31,13 @@ async function create(): Promise<void> {
     return
   }
   comment = comment.replace('- [ ]', '- [x]')
-  comment += `- [ ] Pulling and inspecting image to determine configurable environment variables.\n`
-  await github.updatePullRequestComment(comment_id, comment)
-
-  const dockerContainerConfig = await docker.getEnvVarsFromImage(image)
-  comment = comment.replace('- [ ]', '- [x]')
-
-  if (dockerContainerConfig.envVars.length > 0) {
-    comment += `<details><summary>Configurable environment variables</summary>\n<ul>\n`
-
-    comment += `\nKEY | VALUE\n--- | ---\n`
-    for (const envVar of dockerContainerConfig.envVars) {
-      comment += `${envVar.name} | ${envVar.value}\n`
-    }
-
-    comment += `\nConfigure environment variables by adding labels to the pull request, the name of the label is the environment variable name, the 'description' field should be set to the value.\n</details>\n\n`
-  }
-
-  if (dockerContainerConfig.arguments.length) {
-    comment += `<details><summary>Container command arguments</summary>\n<ul>\n`
-    comment += `This image supports setting an image argument. To configure it, add a label to this PR called 'IMAGE_ARGUMENT'. The description should be a value from the following list:\n`
-    comment += `\n| IMAGE_ARGUMENT |\n|---|\n`
-    for (const argument of dockerContainerConfig.arguments) {
-      comment += `| ${argument} |\n`
-    }
-    comment += `\n</details>\n\n`
-  }
+  comment += `<details><summary>Configurable environment variables</summary>\n<ul>\n`
+  comment += `\nThe environment variables you are able to configure should be listed in the repository's README.md file.\n`
+  comment += `\nConfigure environment variables by adding labels to the pull request, the name of the label is the environment variable name, the 'description' field should be set to the value.\n</details>\n\n`
 
   await github.updatePullRequestComment(comment_id, comment)
 
-  const containerConfig = await github.getContainerConfiguration(
-    dockerContainerConfig
-  )
+  const containerConfig = await github.getContainerConfiguration()
 
   if (containerConfig.envVars.length > 0) {
     comment += `<details><summary>Configured environment variables / settings</summary>\n<ul>\n`

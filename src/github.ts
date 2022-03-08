@@ -91,9 +91,7 @@ export async function updatePullRequestComment(
   return -1
 }
 
-export async function getContainerConfiguration(
-  supportedContainerConfiguration: ContainerConfiguration
-): Promise<ContainerConfiguration> {
+export async function getContainerConfiguration(): Promise<ContainerConfiguration> {
   const containerConfig = new ContainerConfiguration()
 
   // get environment variables from workflow file
@@ -105,7 +103,7 @@ export async function getContainerConfiguration(
 
   if (githubToken) {
     const octokit = github.getOctokit(githubToken, {
-      userAgent: 'rvdh/cloudrun-action'
+      userAgent: 'ultimaker/cloudrun-action'
     })
 
     const {data: issueLabels} = await octokit.issues.listLabelsOnIssue({
@@ -113,11 +111,6 @@ export async function getContainerConfiguration(
       repo: github.context.repo.repo,
       issue_number: github.context.issue.number
     })
-
-    const supportedEnvVarNames = []
-    for (const envVar of supportedContainerConfiguration.envVars) {
-      supportedEnvVarNames.push(envVar.name)
-    }
 
     for (const key of issueLabels) {
       core.debug(`issue label: ${key.name}`)
@@ -130,8 +123,7 @@ export async function getContainerConfiguration(
       }
       if (key.name === 'IMAGE_ARGUMENT') {
         containerConfig.arguments.push(key.description)
-      }
-      if (supportedEnvVarNames.includes(key.name)) {
+      } else {
         let found = false
         for (const currentKey of containerConfig.envVars) {
           if (currentKey.name === key.name) {
@@ -144,8 +136,6 @@ export async function getContainerConfiguration(
             name: key.name,
             value: key.description
           })
-      } else {
-        core.debug(`${key.name} not in ${supportedEnvVarNames}`)
       }
     }
   }
